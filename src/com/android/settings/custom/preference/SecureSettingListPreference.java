@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2016 The CyanogenMod Project
- * Copyright (C) 2018 The LineageOS Project
+ * Copyright (C) 2016 The CyanogenMod project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.android.settings.custom.preference;
 
 import android.content.Context;
+import android.provider.Settings;
+import androidx.preference.ListPreference;
 import android.util.AttributeSet;
 
-import android.provider.Settings;
-
-
-public class SecureSettingListPreference extends SelfRemovingListPreference {
-
+public class SecureSettingListPreference extends ListPreference {
     public SecureSettingListPreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
@@ -32,8 +30,26 @@ public class SecureSettingListPreference extends SelfRemovingListPreference {
         super(context, attrs);
     }
 
-    public int getIntValue(int defValue) {
-        return getValue() == null ? defValue : Integer.valueOf(getValue());
+    @Override
+    protected boolean persistString(String value) {
+        if (shouldPersist()) {
+            if (value == getPersistedString(null)) {
+                // It's already there, so the same as persisting
+                return true;
+            }
+            Settings.Secure.putString(getContext().getContentResolver(), getKey(), value);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected String getPersistedString(String defaultReturnValue) {
+        if (!shouldPersist()) {
+            return defaultReturnValue;
+        }
+        String value = Settings.Secure.getString(getContext().getContentResolver(), getKey());
+        return value == null ? defaultReturnValue : value;
     }
 
     @Override
@@ -41,14 +57,7 @@ public class SecureSettingListPreference extends SelfRemovingListPreference {
         return Settings.Secure.getString(getContext().getContentResolver(), getKey()) != null;
     }
 
-    @Override
-    protected void putString(String key, String value) {
-        Settings.Secure.putString(getContext().getContentResolver(), key, value);
-    }
-
-    @Override
-    protected String getString(String key, String defaultValue) {
-        String result = Settings.Secure.getString(getContext().getContentResolver(), key);
-        return result == null ? defaultValue : result;
+    public int getIntValue(int defValue) {
+        return getValue() == null ? defValue : Integer.valueOf(getValue());
     }
 }
